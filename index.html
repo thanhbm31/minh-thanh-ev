@@ -86,7 +86,30 @@ function insuranceUpdate(){const value=Q('insurancePartner').value;Q('insuranceR
 Q('insurancePartner').onchange=insuranceUpdate;initInsurancePartners();
 Q('model').onchange=()=>cascade(0);Q('version').onchange=()=>cascade(1);Q('color').onchange=()=>cascade(2);Q('inside').onchange=calc;Q('place').onchange=calc;Q('date').textContent='Ngày '+new Date().toLocaleDateString('vi-VN');
 let savedQuoteImage=null;
-Q('screenshotQuote').onclick=async()=>{const status=Q('shotStatus'),btn=Q('screenshotQuote');if(!live){status.textContent='Chưa tải được dữ liệu báo giá thực tế.';return}if(typeof html2canvas!=='function'){status.textContent='Không tải được công cụ tạo ảnh báo giá.';return}btn.disabled=true;status.textContent='Đang tạo ảnh báo giá…';try{const canvas=await html2canvas(Q('quoteCapture'),{backgroundColor:'#ffffff',scale:2,useCORS:true,ignoreElements:el=>el.hasAttribute('data-html2canvas-ignore')});const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.88));if(!blob)throw Error('Không tạo được JPG');const file=new File([blob],'Bao-gia-Minh-Thanh-EV.jpg',{type:'image/jpeg'});if(navigator.share&&navigator.canShare?.({files:[file]})){status.textContent='Trong bảng chia sẻ, chọn “Lưu hình ảnh” để lưu vào ứng dụng Ảnh.';await navigator.share({files:[file]});status.textContent='Đã đóng bảng chia sẻ. Hãy kiểm tra ứng dụng Ảnh nếu bạn đã chọn “Lưu hình ảnh”.'}else{status.textContent='Trình duyệt chưa hỗ trợ chia sẻ file ảnh trực tiếp. Hãy mở website bằng Safari trên iPhone.'}}catch(error){status.textContent=error?.name==='AbortError'?'Đã đóng bảng chia sẻ, ảnh chưa được lưu nếu bạn chưa chọn “Lưu hình ảnh”.':'Không thể tạo hoặc chia sẻ ảnh báo giá.'}finally{btn.disabled=false}};
+Q('screenshotQuote').onclick=async()=>{const status=Q('shotStatus'),btn=Q('screenshotQuote');if(!live){status.textContent='Chưa tải được dữ liệu báo giá thực tế.';return}if(typeof html2canvas!=='function'){status.textContent='Không tải được công cụ tạo ảnh báo giá.';return}btn.disabled=true;status.textContent='Đang tạo ảnh báo giá…';try{const logo=Q('quoteCapture').querySelector('.mev-square-logo img');
+let oldLogoSrc=null;
+try{
+ if(logo){
+  oldLogoSrc=logo.getAttribute('src');
+  const svgResponse=await fetch(oldLogoSrc,{cache:'force-cache'});
+  if(!svgResponse.ok)throw Error('Không tải được logo');
+  const svgMarkup=await svgResponse.text();
+  const svgBlob=new Blob([svgMarkup],{type:'image/svg+xml;charset=utf-8'});
+  const svgUrl=URL.createObjectURL(svgBlob);
+  try{
+   const rasterImage=new Image();
+   await new Promise((resolve,reject)=>{rasterImage.onload=resolve;rasterImage.onerror=()=>reject(Error('Không đọc được logo SVG'));rasterImage.src=svgUrl});
+   const rasterCanvas=document.createElement('canvas');
+   rasterCanvas.width=512;rasterCanvas.height=512;
+   const ctx=rasterCanvas.getContext('2d');
+   if(!ctx)throw Error('Không thể tạo ảnh logo');
+   ctx.drawImage(rasterImage,0,0,512,512);
+   const pngData=rasterCanvas.toDataURL('image/png');
+   await new Promise((resolve,reject)=>{logo.onload=resolve;logo.onerror=()=>reject(Error('Không nạp được logo PNG'));logo.src=pngData;if(logo.complete&&logo.naturalWidth)resolve()});
+   if(logo.decode)await logo.decode().catch(()=>{});
+  }finally{URL.revokeObjectURL(svgUrl)}
+ }
+ const canvas=await html2canvas(Q('quoteCapture'),{backgroundColor:'#ffffff',scale:2,useCORS:true,allowTaint:false,imageTimeout:15000,ignoreElements:el=>el.hasAttribute('data-html2canvas-ignore')});}finally{if(logo&&oldLogoSrc!==null){logo.src=oldLogoSrc;}}const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.88));if(!blob)throw Error('Không tạo được JPG');const file=new File([blob],'Bao-gia-Minh-Thanh-EV.jpg',{type:'image/jpeg'});if(navigator.share&&navigator.canShare?.({files:[file]})){status.textContent='Trong bảng chia sẻ, chọn “Lưu hình ảnh” để lưu vào ứng dụng Ảnh.';await navigator.share({files:[file]});status.textContent='Đã đóng bảng chia sẻ. Hãy kiểm tra ứng dụng Ảnh nếu bạn đã chọn “Lưu hình ảnh”.'}else{status.textContent='Trình duyệt chưa hỗ trợ chia sẻ file ảnh trực tiếp. Hãy mở website bằng Safari trên iPhone.'}}catch(error){status.textContent=error?.name==='AbortError'?'Đã đóng bảng chia sẻ, ảnh chưa được lưu nếu bạn chưa chọn “Lưu hình ảnh”.':'Không thể tạo hoặc chia sẻ ảnh báo giá.'}finally{btn.disabled=false}};
 const SHEET_CACHE_KEY='minhThanhEvSheets_v2',CACHE_TTL=15*60*1000;
 function applySheetData(a,b,source){products=a.slice(1).map(r=>({model:String(r[3]||''),version:String(r[4]||''),color:String(r[5]||''),inside:String(r[6]||''),price:num(r[7])})).filter(x=>x.model&&x.version&&x.price);policies=b.slice(1).map(r=>({id:String(r[0]||''),name:String(r[1]||''),models:String(r[4]||'').split(',').map(x=>x.trim()),pct:Number(String(r[7]||'0').replace('%','').replace(',','.'))||0,cash:num(r[8]),group:String(r[9]||''),from:parseDate(r[2]),to:parseDate(r[3]),active:String(r[11]).toUpperCase()==='TRUE',audiences:String(r[12]||'').split(',').map(x=>x.trim()).filter(Boolean)})).filter(x=>x.name);if(!products.length)throw Error('Không có dữ liệu xe');live=true;Q('status').className='notice ok';Q('status').textContent=source+' · '+products.length+' cấu hình xe';fill('model',unique(products.map(x=>x.model)));cascade();refreshProvinces()}
 (async()=>{
