@@ -31,7 +31,7 @@ function cascade(level=0){if(level<=0)fill('version',unique(products.filter(x=>x
 const parseDate=x=>{const v=String(x||'');if(v.startsWith('Date(')){const n=v.slice(5).split(')')[0].split(',').map(Number);return new Date(n[0],n[1],n[2])}const n=v.split('/').map(Number);return n.length===3&&n.every(Number.isFinite)?new Date(n[2],n[1]-1,n[0]):null};
 const selectedPolicies=()=>[...document.querySelectorAll('.policy:checked, .policy[data-auto="true"]')].map(x=>policies[+x.dataset.i]);
 const applicable=p=>{if(!Q('customerType').value)return false;const now=new Date();now.setHours(0,0,0,0);return p.models.includes(Q('model').value)&&(!p.audiences.length||p.audiences.includes(Q('customerType').value))&&(!p.from||now>=p.from)&&(!p.to||now<=p.to)&&p.active};
-function displayPolicyName(p){return /ưu đãi\\s*2%\\s*mua qua kênh o2o/i.test(p.name)?'Ưu đãi 2% qua THANHBUIVFO20':p.name}
+function displayPolicyName(p){return /ưu đãi\\s*2%\\s*mua qua kênh o2o/i.test(p.name)?'Ưu đãi 2% qua THANHBUIVFO2O':p.name}
 function offers(){
  const box=Q('offers'),prior=new Set(selectedPolicies().map(x=>x.id));box.replaceChildren();
  if(!Q('customerType').value){Q('policyHint').textContent='Bước 1: Hãy chọn nhóm khách hàng để hiển thị ưu đãi phù hợp.';return;}
